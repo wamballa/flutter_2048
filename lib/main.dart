@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:async';
+// import 'package:flutter_swiper/flutter_swiper.dart';
+import 'package:flutter_swipe_detector/flutter_swipe_detector.dart';
+
 // import 'game.dart';
 
 // https://github.com/anuranBarman/2048
@@ -24,6 +27,8 @@ class _Flutter2048State extends State<Flutter2048>
 
   int _score = 0;
   int _highScore = 0;
+  bool kDebugMode = true;
+
   final StreamController<int> _scoreController =
       StreamController<int>.broadcast();
   final StreamController<int> _highScoreController =
@@ -114,6 +119,9 @@ class _Flutter2048State extends State<Flutter2048>
   }
 
   bool _moveLeft() {
+    if (kDebugMode) {
+      print("Move Left");
+    }
     bool moved = false;
 
     // Iterate through each row
@@ -157,6 +165,9 @@ class _Flutter2048State extends State<Flutter2048>
   }
 
   bool _moveRight() {
+    if (kDebugMode) {
+      print("Move Right");
+    }
     bool moved = false;
 
     for (int y = 0; y < 4; y++) {
@@ -194,6 +205,9 @@ class _Flutter2048State extends State<Flutter2048>
   }
 
   bool _moveUp() {
+    if (kDebugMode) {
+      print("Move Up");
+    }
     bool moved = false;
 
     for (int x = 0; x < 4; x++) {
@@ -232,6 +246,9 @@ class _Flutter2048State extends State<Flutter2048>
   }
 
   bool _moveDown() {
+    if (kDebugMode) {
+      print("Move Down");
+    }
     bool moved = false;
 
     for (int x = 0; x < 4; x++) {
@@ -485,42 +502,78 @@ class _Flutter2048State extends State<Flutter2048>
               child: AspectRatio(
                 // AspectRatio start
                 aspectRatio: 1.0,
-                child: GestureDetector(
-                  onVerticalDragEnd: (details) {
-                    if (details.primaryVelocity != null &&
-                        details.primaryVelocity! < -100) {
-                      // Swipe up
-                      if (_moveUp()) {
-                        _updateGameState();
-                      }
-                    } else if (details.primaryVelocity != null &&
-                        details.primaryVelocity! > 100) {
-                      // Swipe down
-                      if (_moveDown()) {
-                        _updateGameState();
-                      }
-                    }
-                  },
-                  onHorizontalDragEnd: (details) {
-                    if (details.primaryVelocity != null &&
-                        details.primaryVelocity! < -100) {
-                      // Swipe left
-                      if (_moveLeft()) {
-                        _updateGameState();
-                      }
-                    } else if (details.primaryVelocity != null &&
-                        details.primaryVelocity! > 100) {
-                      // Swipe right
-                      if (_moveRight()) {
-                        _updateGameState();
-                      }
-                    }
-                  },
+                // child: GestureDetector(
+                //   onVerticalDragEnd: (details) {
+                //     if (details.primaryVelocity != null &&
+                //         details.primaryVelocity! < -100) {
+                //       // Swipe up
+                //       if (_moveUp()) {
+                //         _updateGameState();
+                //       }
+                //     } else if (details.primaryVelocity != null &&
+                //         details.primaryVelocity! > 100) {
+                //       // Swipe down
+                //       if (_moveDown()) {
+                //         _updateGameState();
+                //       }
+                //     }
+                //   },
+                //   onHorizontalDragEnd: (details) {
+                //     if (details.primaryVelocity != null &&
+                //         details.primaryVelocity! < -100) {
+                //       // Swipe left
+                //       if (_moveLeft()) {
+                //         _updateGameState();
+                //       }
+                //     } else if (details.primaryVelocity != null &&
+                //         details.primaryVelocity! > 100) {
+                //       // Swipe right
+                //       if (_moveRight()) {
+                //         _updateGameState();
+                //       }
+                //     }
+                //   },
+                //   child: Container(
+                //     padding: EdgeInsets.all(10.0),
+                //     color: Colors.grey[800],
+                //     child: _buildGrid(),
+                //   ),
+                // ),
+                child: SwipeDetector(
                   child: Container(
                     padding: EdgeInsets.all(10.0),
                     color: Colors.grey[800],
                     child: _buildGrid(),
                   ),
+                  onSwipeLeft: (Offset offset) {
+                    // Added Offset parameter
+                    // Swipe left
+                    if (_moveLeft()) {
+                      _updateGameState();
+                    }
+                  },
+                  onSwipeRight: (Offset offset) {
+                    // Added Offset parameter
+
+                    // Swipe right
+                    if (_moveRight()) {
+                      _updateGameState();
+                    }
+                  },
+                  onSwipeUp: (Offset offset) {
+                    // Added Offset parameter
+                    // Swipe up
+                    if (_moveUp()) {
+                      _updateGameState();
+                    }
+                  },
+                  onSwipeDown: (Offset offset) {
+                    // Added Offset parameter
+                    // Swipe down
+                    if (_moveDown()) {
+                      _updateGameState();
+                    }
+                  },
                 ),
               ), // AspectRatio end
             ),
