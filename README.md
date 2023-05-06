@@ -4,7 +4,7 @@ A Flutter implementation of the classic 2048 game.
 
 ### Screenshots
 
-![Gameplay](screenshots/gameplay.png)
+![Gameplay](assets/screenshots/gamePlay.png)
 
 ### Getting Started
 
