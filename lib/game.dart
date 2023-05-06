@@ -1,10 +1,41 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
 
 class Game {
   List<List<int>> _board = List.generate(4, (_) => List.generate(4, (_) => 0));
   Map<String, int> _lastMergedValueAt = {};
 
   int _score = 0;
+  int _highScore = 0;
+
+  StreamController<int> _highScoreController = StreamController<int>();
+
+  Game() {
+    _loadHighScore().then((loadedHighScore) {
+      _highScore = loadedHighScore;
+      print("Loaded HighScore = $_highScore");
+      _highScoreController.add(_highScore); // Add this line
+    });
+    resetGame();
+  }
+
+  Future<void> _storeHighScore(int highScore) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('highScore', highScore);
+    int hs = prefs.getInt('highScore') ?? 0;
+    print("Stored high score = $hs");
+  }
+
+  Future<int> _loadHighScore() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int hs = prefs.getInt('highScore') ?? 0;
+    if (kDebugMode) {
+      print("Loaded high score $hs");
+    }
+    return prefs.getInt('highScore') ?? 0;
+  }
 
   void initBoard() {
     _board = List.generate(4, (_) => List.generate(4, (_) => 0));
@@ -12,9 +43,38 @@ class Game {
     spawnNewTile();
   }
 
+  int getBoardValue(int x, int y) {
+    return _board[y][x];
+  }
+
+  int? getLastMergedValueAt(int x, int y) {
+    return _lastMergedValueAt['$y,$x'];
+  }
+
+  void resetLastMergedValueAt(int x, int y) {
+    _lastMergedValueAt.remove('$y,$x');
+  }
+
+  int getScore() {
+    return _score;
+  }
+
+  void setScore(int v) {
+    _score = v;
+  }
+
+  int getHighScore() {
+    return _highScore;
+  }
+
+  void setHighScore(int v) {
+    _highScore = v;
+  }
+
   bool moveLeft() {
-    print('Move Left');
-    // logic for moving tiles left
+    if (kDebugMode) {
+      print("Move Left");
+    }
     bool moved = false;
 
     // Iterate through each row
@@ -58,7 +118,9 @@ class Game {
   }
 
   bool moveRight() {
-    // logic for moving tiles right
+    if (kDebugMode) {
+      print("Move Right");
+    }
     bool moved = false;
 
     for (int y = 0; y < 4; y++) {
@@ -96,7 +158,9 @@ class Game {
   }
 
   bool moveUp() {
-    // logic for moving tiles up
+    if (kDebugMode) {
+      print("Move Up");
+    }
     bool moved = false;
 
     for (int x = 0; x < 4; x++) {
@@ -135,7 +199,9 @@ class Game {
   }
 
   bool moveDown() {
-    // logic for moving tiles down
+    if (kDebugMode) {
+      print("Move Down");
+    }
     bool moved = false;
 
     for (int x = 0; x < 4; x++) {
@@ -173,19 +239,32 @@ class Game {
     return moved;
   }
 
-  // bool hasValidMoves() {
-  //   // logic for checking if there are valid moves
-  // }
+  void resetGame() async {
+    if (kDebugMode) {
+      print("Restart Game");
+    }
 
-  void resetGame() {
+    int loadedHighScore = await _loadHighScore();
+    _highScore = loadedHighScore;
+
+    if (_score > _highScore) {
+      print("Reset HighScore  ");
+      _highScore = _score;
+      _storeHighScore(_highScore);
+    }
     _board = List.generate(4, (_) => List.filled(4, 0));
     _score = 0;
+
+    print("Highscore = $_highScore");
+    _highScoreController.add(_highScore);
     spawnNewTile();
     spawnNewTile();
   }
 
   void spawnNewTile() {
-    print('Spawn Tile');
+    // if (kDebugMode) {
+    //   print('Spawn Tile. Score = $_score');
+    // }
     // logic for spawning a new tile
     List<int> availableCells = [];
     for (int y = 0; y < 4; y++) {

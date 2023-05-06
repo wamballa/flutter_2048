@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
+import 'package:flutter/foundation.dart';
+// import 'dart:math';
 import 'dart:async';
 // import 'package:flutter_swiper/flutter_swiper.dart';
 import 'package:flutter_swipe_detector/flutter_swipe_detector.dart';
-
-// import 'game.dart';
+import 'game.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 // https://github.com/anuranBarman/2048
 
@@ -22,12 +23,10 @@ class Flutter2048 extends StatefulWidget {
 
 class _Flutter2048State extends State<Flutter2048>
     with TickerProviderStateMixin {
-  List<List<int>> _board = List.generate(4, (_) => List.generate(4, (_) => 0));
-  Map<String, int> _lastMergedValueAt = {};
+  // List<List<int>> _board = List.generate(4, (_) => List.generate(4, (_) => 0));
+  // Map<String, int> _lastMergedValueAt = {};
 
-  int _score = 0;
-  int _highScore = 0;
-  bool kDebugMode = true;
+  final game = Game();
 
   final StreamController<int> _scoreController =
       StreamController<int>.broadcast();
@@ -37,7 +36,7 @@ class _Flutter2048State extends State<Flutter2048>
   @override
   void initState() {
     super.initState();
-    _initBoard();
+    game.initBoard();
   }
 
   @override
@@ -45,16 +44,6 @@ class _Flutter2048State extends State<Flutter2048>
     _scoreController.close();
     _highScoreController.close();
     super.dispose();
-  }
-
-  // This function initializes the game board as a 4x4 grid and spawns two new tiles.
-  void _initBoard() {
-    // Generate a 4x4 grid filled with zeros.
-    _board = List.generate(4, (_) => List.generate(4, (_) => 0));
-
-    // Spawn two new tiles randomly on the board.
-    _spawnNewTile();
-    _spawnNewTile();
   }
 
   void _showGameOverDialog() {
@@ -67,8 +56,8 @@ class _Flutter2048State extends State<Flutter2048>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Score: $_score'),
-              Text('High Score: $_highScore'),
+              Text('Score: $game.getScore()'),
+              Text('High Score: $game.getHighScore'),
             ],
           ),
           actions: [
@@ -76,8 +65,8 @@ class _Flutter2048State extends State<Flutter2048>
               child: Text('Restart'),
               onPressed: () {
                 setState(() {
-                  _initBoard();
-                  _score = 0;
+                  game.initBoard();
+                  game.setScore(0);
                 });
                 Navigator.of(context).pop();
               },
@@ -88,250 +77,24 @@ class _Flutter2048State extends State<Flutter2048>
     );
   }
 
-  // This function spawns a new tile with value 2 (90% probability) or 4 (10% probability) in an available cell.
-  void _spawnNewTile() {
-    // Create a list to store the indices of available cells (cells with value 0).
-    List<int> availableCells = [];
-
-    // Iterate through the board and find available cells.
-    for (int y = 0; y < 4; y++) {
-      for (int x = 0; x < 4; x++) {
-        // If the cell is available (value is 0), add its index to the list.
-        if (_board[y][x] == 0) {
-          availableCells.add(y * 4 + x);
-        }
-      }
-    }
-
-    // If there are any available cells,
-    if (availableCells.isNotEmpty) {
-      // Pick a random index from the list of available cells.
-      int randomIndex = Random().nextInt(availableCells.length);
-      int cellIndex = availableCells[randomIndex];
-
-      // Calculate the row (y) and column (x) coordinates of the selected cell.
-      int y = cellIndex ~/ 4;
-      int x = cellIndex % 4;
-
-      // Assign a value of 2 (90% probability) or 4 (10% probability) to the selected cell.
-      _board[y][x] = Random().nextDouble() < 0.9 ? 2 : 4;
-    }
-  }
-
-  bool _moveLeft() {
-    if (kDebugMode) {
-      print("Move Left");
-    }
-    bool moved = false;
-
-    // Iterate through each row
-    for (int y = 0; y < 4; y++) {
-      int lastMergedValue = 0;
-      int lastMergedIndex = -1;
-
-      // Iterate through each column starting from the second column (index 1)
-      for (int x = 1; x < 4; x++) {
-        int currentValue = _board[y][x];
-        if (currentValue == 0) continue; // Skip empty cells
-
-        int targetX = x;
-        // Move the current tile to the left until an occupied cell or the edge of the grid is reached
-        while (targetX > 0 && _board[y][targetX - 1] == 0) {
-          targetX--;
-        }
-
-        // Check if the tile can be merged with the tile to its left
-        if (targetX - 1 >= 0 &&
-            _board[y][targetX - 1] == currentValue &&
-            currentValue != lastMergedValue) {
-          _board[y][targetX - 1] = currentValue * 2; // Merge the tiles
-          _board[y][x] = 0;
-          lastMergedValue = currentValue;
-          lastMergedIndex = targetX - 1;
-          moved = true;
-          _score += currentValue * 2;
-          _lastMergedValueAt['$y,$lastMergedIndex'] = currentValue * 2;
-        } else if (targetX != x) {
-          // Check if the tile has moved but not merged
-          _board[y][targetX] =
-              currentValue; // Move the tile to the new position
-          _board[y][x] = 0; // Set the original position to empty
-          moved = true;
-        }
-      }
-    }
-
-    return moved;
-  }
-
-  bool _moveRight() {
-    if (kDebugMode) {
-      print("Move Right");
-    }
-    bool moved = false;
-
-    for (int y = 0; y < 4; y++) {
-      int lastMergedValue = 0;
-      int lastMergedIndex = -1;
-
-      for (int x = 2; x >= 0; x--) {
-        int currentValue = _board[y][x];
-        if (currentValue == 0) continue;
-
-        int targetX = x;
-        while (targetX < 3 && _board[y][targetX + 1] == 0) {
-          targetX++;
-        }
-
-        if (targetX + 1 < 4 &&
-            _board[y][targetX + 1] == currentValue &&
-            currentValue != lastMergedValue) {
-          _board[y][targetX + 1] = currentValue * 2;
-          _board[y][x] = 0;
-          lastMergedValue = currentValue;
-          lastMergedIndex = targetX + 1;
-          moved = true;
-          _score += currentValue * 2;
-          _lastMergedValueAt['$y,$lastMergedIndex'] = currentValue * 2;
-        } else if (targetX != x) {
-          _board[y][targetX] = currentValue;
-          _board[y][x] = 0;
-          moved = true;
-        }
-      }
-    }
-
-    return moved;
-  }
-
-  bool _moveUp() {
-    if (kDebugMode) {
-      print("Move Up");
-    }
-    bool moved = false;
-
-    for (int x = 0; x < 4; x++) {
-      int lastMergedValue = 0;
-      int lastMergedIndex = -1;
-
-      for (int y = 1; y < 4; y++) {
-        int currentValue = _board[y][x];
-        if (currentValue == 0) continue;
-
-        int targetY = y;
-        while (targetY > 0 && _board[targetY - 1][x] == 0) {
-          targetY--;
-        }
-
-        if (targetY - 1 >= 0 &&
-            _board[targetY - 1][x] == currentValue &&
-            currentValue != lastMergedValue) {
-          _board[targetY - 1][x] = currentValue * 2;
-          _board[y][x] = 0;
-          lastMergedValue = currentValue;
-          lastMergedIndex = targetY - 1;
-          moved = true;
-          _score += currentValue * 2;
-          // _lastMergedValueAt['$y,$lastMergedIndex'] = currentValue * 2;
-          _lastMergedValueAt['$lastMergedIndex,$x'] = currentValue * 2;
-        } else if (targetY != y) {
-          _board[targetY][x] = currentValue;
-          _board[y][x] = 0;
-          moved = true;
-        }
-      }
-    }
-
-    return moved;
-  }
-
-  bool _moveDown() {
-    if (kDebugMode) {
-      print("Move Down");
-    }
-    bool moved = false;
-
-    for (int x = 0; x < 4; x++) {
-      int lastMergedValue = 0;
-      int lastMergedIndex = -1;
-
-      for (int y = 2; y >= 0; y--) {
-        int currentValue = _board[y][x];
-        if (currentValue == 0) continue;
-
-        int targetY = y;
-        while (targetY < 3 && _board[targetY + 1][x] == 0) {
-          targetY++;
-        }
-
-        if (targetY + 1 < 4 &&
-            _board[targetY + 1][x] == currentValue &&
-            currentValue != lastMergedValue) {
-          _board[targetY + 1][x] = currentValue * 2;
-          _board[y][x] = 0;
-          lastMergedValue = currentValue;
-          lastMergedIndex = targetY + 1;
-          moved = true;
-          _score += currentValue * 2;
-          // _lastMergedValueAt['$y,$lastMergedIndex'] = currentValue * 2;
-          _lastMergedValueAt['${targetY + 1},$x'] = currentValue * 2;
-        } else if (targetY != y) {
-          _board[targetY][x] = currentValue;
-          _board[y][x] = 0;
-          moved = true;
-        }
-      }
-    }
-
-    return moved;
-  }
-
-  bool _isGameOver() {
-    // Check if there are any empty cells
-    for (int y = 0; y < 4; y++) {
-      for (int x = 0; x < 4; x++) {
-        if (_board[y][x] == 0) {
-          return false;
-        }
-      }
-    }
-
-    // Check if there are any adjacent cells with the same value
-    for (int y = 0; y < 4; y++) {
-      for (int x = 0; x < 4; x++) {
-        int currentValue = _board[y][x];
-        if (y > 0 && _board[y - 1][x] == currentValue) return false;
-        if (y < 3 && _board[y + 1][x] == currentValue) return false;
-        if (x > 0 && _board[y][x - 1] == currentValue) return false;
-        if (x < 3 && _board[y][x + 1] == currentValue) return false;
-      }
-    }
-
-    return true;
-  }
-
-  void _resetGame() {
-    setState(() {
-      _board = List.generate(4, (_) => List.filled(4, 0));
-      _score = 0;
-      _scoreController.add(_score);
-      _spawnNewTile();
-      _spawnNewTile();
-    });
-  }
-
   void _updateGameState() {
-    setState(() {
-      _spawnNewTile();
-      if (_isGameOver()) {
-        // _highScore = max(_highScore, _score);
-        // Display game over message or perform other actions
-        _showGameOverDialog();
+    if (game.isGameOver()) {
+      if (kDebugMode) {
+        print("Game Over");
       }
-      _highScore = max(_highScore, _score);
-      _scoreController.add(_score);
-      _highScoreController.add(_highScore);
-    });
+      if (game.getScore() > game.getHighScore()) {
+        game.setHighScore(game.getScore());
+        _highScoreController.add(game.getHighScore());
+      }
+    } else {
+      game.spawnNewTile();
+    }
+
+    // update the score in the UI
+    _scoreController.add(game.getScore());
+    _highScoreController.add(game.getHighScore());
+
+    setState(() {});
   }
 
   Color? _getTileColor(int value) {
@@ -364,11 +127,13 @@ class _Flutter2048State extends State<Flutter2048>
   }
 
   Widget _buildTile(int x, int y) {
-    int value = _board[y][x];
+    int value = game.getBoardValue(x, y);
+    int? lastMergedValue = game.getLastMergedValueAt(x, y);
     Color? textColor = value < 8 ? Colors.grey[800] : Colors.white;
     Color? bgColor = _getTileColor(value);
 
-    if (_lastMergedValueAt['$y,$x'] != null) {
+    // if (_lastMergedValueAt['$y,$x'] != null) {
+    if (lastMergedValue != null) {
       // Scale the tile down when it is merged
       return TweenAnimationBuilder<double>(
         tween: Tween<double>(begin: 1.0, end: 0.9),
@@ -384,7 +149,8 @@ class _Flutter2048State extends State<Flutter2048>
               alignment: Alignment.center,
               child: value != 0
                   ? Text(
-                      '${_lastMergedValueAt['$y,$x']}',
+                      // '${_lastMergedValueAt['$y,$x']}',
+                      '$lastMergedValue',
                       style: TextStyle(
                         fontSize: 24.0,
                         fontWeight: FontWeight.bold,
@@ -398,7 +164,8 @@ class _Flutter2048State extends State<Flutter2048>
         onEnd: () {
           // Reset the last merged value after the animation is completed
           setState(() {
-            _lastMergedValueAt.remove('$y,$x');
+            // _lastMergedValueAt.remove('$y,$x');
+            game.resetLastMergedValueAt(x, y);
           });
         },
       );
@@ -466,7 +233,7 @@ class _Flutter2048State extends State<Flutter2048>
                       Text('Score'),
                       StreamBuilder<int>(
                         stream: _scoreController.stream,
-                        initialData: _score,
+                        initialData: game.getScore(),
                         builder: (BuildContext context,
                             AsyncSnapshot<int> snapshot) {
                           return Text('${snapshot.data}');
@@ -483,7 +250,7 @@ class _Flutter2048State extends State<Flutter2048>
                       // Text('$_highScore'),
                       StreamBuilder<int>(
                         stream: _highScoreController.stream,
-                        initialData: _highScore,
+                        initialData: game.getHighScore(),
                         builder: (BuildContext context,
                             AsyncSnapshot<int> snapshot) {
                           return Text('${snapshot.data}');
@@ -491,91 +258,79 @@ class _Flutter2048State extends State<Flutter2048>
                       ),
                     ],
                   ), // Column for High Score end
+                  // ElevatedButton(
                   ElevatedButton(
-                    onPressed: _resetGame,
-                    child: Text('Restart'),
+                    onPressed: () {
+                      setState(() {
+                        game.resetGame();
+                      });
+                      _scoreController.add(game.getScore());
+                      _highScoreController.add(game.getHighScore());
+                    },
+                    child: Text('Restart Game'),
                   ),
                 ],
               ), // Row end
             ),
             Expanded(
-              child: AspectRatio(
-                // AspectRatio start
-                aspectRatio: 1.0,
-                // child: GestureDetector(
-                //   onVerticalDragEnd: (details) {
-                //     if (details.primaryVelocity != null &&
-                //         details.primaryVelocity! < -100) {
-                //       // Swipe up
-                //       if (_moveUp()) {
-                //         _updateGameState();
-                //       }
-                //     } else if (details.primaryVelocity != null &&
-                //         details.primaryVelocity! > 100) {
-                //       // Swipe down
-                //       if (_moveDown()) {
-                //         _updateGameState();
-                //       }
-                //     }
-                //   },
-                //   onHorizontalDragEnd: (details) {
-                //     if (details.primaryVelocity != null &&
-                //         details.primaryVelocity! < -100) {
-                //       // Swipe left
-                //       if (_moveLeft()) {
-                //         _updateGameState();
-                //       }
-                //     } else if (details.primaryVelocity != null &&
-                //         details.primaryVelocity! > 100) {
-                //       // Swipe right
-                //       if (_moveRight()) {
-                //         _updateGameState();
-                //       }
-                //     }
-                //   },
-                //   child: Container(
-                //     padding: EdgeInsets.all(10.0),
-                //     color: Colors.grey[800],
-                //     child: _buildGrid(),
-                //   ),
-                // ),
-                child: SwipeDetector(
-                  child: Container(
-                    padding: EdgeInsets.all(10.0),
-                    color: Colors.grey[800],
-                    child: _buildGrid(),
-                  ),
-                  onSwipeLeft: (Offset offset) {
-                    // Added Offset parameter
-                    // Swipe left
-                    if (_moveLeft()) {
-                      _updateGameState();
-                    }
-                  },
-                  onSwipeRight: (Offset offset) {
-                    // Added Offset parameter
+              child: Padding(
+                padding:
+                    EdgeInsets.only(bottom: 16.0), // Add padding below the grid
 
-                    // Swipe right
-                    if (_moveRight()) {
-                      _updateGameState();
-                    }
-                  },
-                  onSwipeUp: (Offset offset) {
-                    // Added Offset parameter
-                    // Swipe up
-                    if (_moveUp()) {
-                      _updateGameState();
-                    }
-                  },
-                  onSwipeDown: (Offset offset) {
-                    // Added Offset parameter
-                    // Swipe down
-                    if (_moveDown()) {
-                      _updateGameState();
-                    }
-                  },
-                ),
-              ), // AspectRatio end
+                child: AspectRatio(
+                  // AspectRatio start
+                  aspectRatio: 1.0,
+                  child: SwipeDetector(
+                    child: Container(
+                      padding: EdgeInsets.all(10.0),
+                      color: Colors.grey[800],
+                      child: _buildGrid(),
+                    ),
+                    onSwipeLeft: (Offset offset) {
+                      // Added Offset parameter
+                      // Swipe left
+                      // if (_moveLeft()) {
+                      if (game.moveLeft()) {
+                        setState(() {
+                          _scoreController.add(game.getScore());
+                          _highScoreController.add(game.getHighScore());
+                        });
+                        _updateGameState();
+                      }
+                    },
+                    onSwipeRight: (Offset offset) {
+                      // Swipe right
+                      if (game.moveRight()) {
+                        setState(() {
+                          _scoreController.add(game.getScore());
+                          _highScoreController.add(game.getHighScore());
+                        });
+                        _updateGameState();
+                      }
+                    },
+                    onSwipeUp: (Offset offset) {
+                      // Swipe up
+                      if (game.moveUp()) {
+                        setState(() {
+                          _scoreController.add(game.getScore());
+                          _highScoreController.add(game.getHighScore());
+                        });
+                        _updateGameState();
+                      }
+                    },
+                    onSwipeDown: (Offset offset) {
+                      // Swipe down
+                      if (game.moveDown()) {
+                        setState(() {
+                          _scoreController.add(game.getScore());
+                          _highScoreController.add(game.getHighScore());
+                        });
+                        _updateGameState();
+                      }
+                    },
+                  ),
+                ), // AspectRatio end
+              ),
             ),
           ],
         ), // Column end
