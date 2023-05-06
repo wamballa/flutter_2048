@@ -12,10 +12,16 @@ class Game {
 
   StreamController<int> _highScoreController = StreamController<int>();
 
+  Stream<int> get highScoreStream => _highScoreController.stream;
+
+  void dispose() {
+    _highScoreController.close();
+  }
+
   Game() {
     _loadHighScore().then((loadedHighScore) {
       _highScore = loadedHighScore;
-      print("Loaded HighScore = $_highScore");
+      // print("CONSTRUCTOR... HighScore = $_highScore");
       _highScoreController.add(_highScore); // Add this line
     });
     resetGame();
@@ -24,17 +30,26 @@ class Game {
   Future<void> _storeHighScore(int highScore) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setInt('highScore', highScore);
-    int hs = prefs.getInt('highScore') ?? 0;
-    print("Stored high score = $hs");
+    // int hs = prefs.getInt('highScore') ?? 0;
+    // print("_storeHighScore: high score = $hs");
   }
 
   Future<int> _loadHighScore() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    int hs = prefs.getInt('highScore') ?? 0;
-    if (kDebugMode) {
-      print("Loaded high score $hs");
-    }
+    // int hs = prefs.getInt('highScore') ?? 0;
+    // if (kDebugMode) {
+    //   print("_loadHighScore: high score = $hs");
+    // }
     return prefs.getInt('highScore') ?? 0;
+  }
+
+  void fillBoard() {
+    int i = 1;
+    for (int y = 0; y < 4; y++) {
+      for (int x = 0; x < 4; x++) {
+        _board[x][y] = i++;
+      }
+    }
   }
 
   void initBoard() {
@@ -69,6 +84,7 @@ class Game {
 
   void setHighScore(int v) {
     _highScore = v;
+    _storeHighScore(v);
   }
 
   bool moveLeft() {
@@ -244,8 +260,8 @@ class Game {
       print("Restart Game");
     }
 
-    int loadedHighScore = await _loadHighScore();
-    _highScore = loadedHighScore;
+    // int loadedHighScore = await _loadHighScore();
+    // _highScore = loadedHighScore;
 
     if (_score > _highScore) {
       print("Reset HighScore  ");
@@ -255,17 +271,14 @@ class Game {
     _board = List.generate(4, (_) => List.filled(4, 0));
     _score = 0;
 
-    print("Highscore = $_highScore");
+    print("resetGame: Highscore = $_highScore");
     _highScoreController.add(_highScore);
     spawnNewTile();
     spawnNewTile();
   }
 
   void spawnNewTile() {
-    // if (kDebugMode) {
-    //   print('Spawn Tile. Score = $_score');
-    // }
-    // logic for spawning a new tile
+    // Find available cells to spawn a new tile
     List<int> availableCells = [];
     for (int y = 0; y < 4; y++) {
       for (int x = 0; x < 4; x++) {
@@ -275,16 +288,24 @@ class Game {
       }
     }
 
+    // Spawn a new tile if there is an available cell
     if (availableCells.isNotEmpty) {
+      // Choose a random available cell to spawn a new tile
       int randomIndex = Random().nextInt(availableCells.length);
       int cellIndex = availableCells[randomIndex];
       int y = cellIndex ~/ 4;
       int x = cellIndex % 4;
+
+      // The new tile has a 90% chance to be 2 and a 10% chance to be 4
       _board[y][x] = Random().nextDouble() < 0.9 ? 2 : 4;
     }
   }
 
   bool isGameOver() {
+    if (kDebugMode) {
+      print("isGameOver: check");
+    }
+    print("Board = $_board");
     // Check if there are any empty cells
     for (int y = 0; y < 4; y++) {
       for (int x = 0; x < 4; x++) {
@@ -293,7 +314,9 @@ class Game {
         }
       }
     }
-
+    if (kDebugMode) {
+      print("isGameOver: No Empty Cells");
+    }
     // Check if there are any adjacent cells with the same value
     for (int y = 0; y < 4; y++) {
       for (int x = 0; x < 4; x++) {
@@ -307,8 +330,4 @@ class Game {
 
     return true;
   }
-
-  // other functions and variables related to the game mechanics
-
-  // getters and setters for private variables
 }
