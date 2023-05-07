@@ -30,16 +30,10 @@ class Game {
   Future<void> _storeHighScore(int highScore) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setInt('highScore', highScore);
-    // int hs = prefs.getInt('highScore') ?? 0;
-    // print("_storeHighScore: high score = $hs");
   }
 
   Future<int> _loadHighScore() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    // int hs = prefs.getInt('highScore') ?? 0;
-    // if (kDebugMode) {
-    //   print("_loadHighScore: high score = $hs");
-    // }
     return prefs.getInt('highScore') ?? 0;
   }
 
